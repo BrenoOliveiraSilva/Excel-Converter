@@ -285,7 +285,8 @@ class LEDEffect:
 class ConverterApp:
     def __init__(self):
         self.window = tk.Tk()
-        self.window.title("Conversor CC → Excel")
+        self.window.title("Grand Converter")  # Alterando o título aqui
+        self.window.iconbitmap('assets/images/logo-icon.ico')
         self.window.geometry("400x600")
         self.setup_ui()
         

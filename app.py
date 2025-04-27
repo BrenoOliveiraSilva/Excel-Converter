@@ -255,7 +255,6 @@ class ConverterApp:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Grand Converter")
-        self.window.iconbitmap('assets/images/logo-icon.ico')
         self.window.geometry("500x700")
         self.setup_ui()
         
@@ -366,7 +365,7 @@ e iniciar a conversão.
         # Versão
         versao_label = tk.Label(
             frame,
-            text="v1.0.1",
+            text="v1.0.2",
             font=("Helvetica", 8),
             bg=background_color,
             fg="#999999"

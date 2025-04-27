@@ -2,6 +2,25 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import pandas as pd
+import random
+
+class Bubble:
+    def __init__(self, canvas):
+        self.canvas = canvas
+        size = random.randint(10, 30)
+        x = random.randint(0, 400)
+        y = 600 + size
+        color = '#90EE90'
+        self.shape = canvas.create_oval(x, y, x + size, y + size, fill=color, outline=color)
+        self.speed = random.uniform(0.5, 2)
+        
+    def move(self):
+        self.canvas.move(self.shape, 0, -self.speed)
+        pos = self.canvas.coords(self.shape)
+        if pos[1] < -30:
+            x = random.randint(0, 400)
+            self.canvas.coords(self.shape, x, 600, x + (pos[2] - pos[0]), 630)
+        self.canvas.after(50, self.move)
 
 class ConverterApp:
     def __init__(self):
@@ -12,7 +31,6 @@ class ConverterApp:
         
     def convert_txt_to_excel(self):
         path_txt = filedialog.askopenfilename(title="Escolha o arquivo TXT", filetypes=[("Arquivos de texto", "*.txt")])
-
         if path_txt:
             try:
                 colspecs = [(0, 10), (10, 20), (20, 30)]
@@ -24,13 +42,23 @@ class ConverterApp:
                 messagebox.showerror("Erro", f"Erro ao processar o arquivo: {e}")
 
     def setup_ui(self):
-        # Configuração do fundo
         background_color = "#f5f5f5"
         self.window.configure(bg=background_color)
 
-        # Criando um frame principal
-        frame = tk.Frame(self.window, bg=background_color)
-        frame.pack(expand=True, fill='both', padx=20, pady=20)
+        # Canvas para as bolhas (agora em tela cheia)
+        self.canvas = tk.Canvas(self.window, bg=background_color, width=400, height=600, highlightthickness=0)
+        self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
+
+        # Frame principal com fundo transparente
+        frame = tk.Frame(self.window, bg=background_color, highlightthickness=0)
+        frame.place(relx=0.5, rely=0.5, anchor="center")
+
+        # Criar bolhas
+        self.bubbles = []
+        for _ in range(15):
+            bubble = Bubble(self.canvas)
+            bubble.move()
+            self.bubbles.append(bubble)
 
         # Logo
         try:
@@ -40,14 +68,13 @@ class ConverterApp:
             hsize = int((float(logo_image.size[1]) * float(wpercent)))
             logo_image = logo_image.resize((width, hsize), Image.Resampling.LANCZOS)
             self.logo = ImageTk.PhotoImage(logo_image)
-            
             logo_label = tk.Label(frame, image=self.logo, bg=background_color)
             logo_label.pack(pady=(20, 30))
         except Exception as e:
             print(f"Erro ao carregar a logo: {e}")
             messagebox.showerror("Erro", f"Erro ao carregar a logo: {e}")
 
-        # Título principal
+        # Título
         titulo_label = tk.Label(
             frame,
             text="Conversor de Relatórios",
@@ -66,7 +93,6 @@ e manipulação dos dados.
 Clique no botão abaixo para selecionar o arquivo
 e iniciar a conversão.
 """
-
         explanation_label = tk.Label(
             frame,
             text=explanation_text,
@@ -78,7 +104,7 @@ e iniciar a conversão.
         )
         explanation_label.pack(pady=(0, 30))
 
-        # Botão de conversão estilizado
+        # Botão
         button_style = {
             'bg': '#16733b',
             'fg': 'white',
@@ -98,7 +124,7 @@ e iniciar a conversão.
         )
         button.pack(pady=20)
 
-        # Rodapé com versão
+        # Versão
         versao_label = tk.Label(
             frame,
             text="v1.0.0",
@@ -108,17 +134,12 @@ e iniciar a conversão.
         )
         versao_label.pack(side="bottom", pady=10)
 
-        # Configurar manipulador de fechamento da janela
-        self.window.protocol("WM_DELETE_WINDOW", self.on_closing)
-
     def on_closing(self):
-        """Handle window closing event"""
         if messagebox.askokcancel("Sair", "Deseja realmente sair?"):
             self.window.quit()
             self.window.destroy()
 
     def run(self):
-        """Start the application"""
         try:
             self.window.mainloop()
         except KeyboardInterrupt:

@@ -1,9 +1,207 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk
 import pandas as pd
 import math
 import time
+
+class DataTableWindow:
+    def __init__(self, df):
+        self.window = tk.Toplevel()
+        self.window.title("Dados Convertidos")
+        self.window.geometry("1200x600")
+        
+        # Criar frame principal
+        main_frame = tk.Frame(self.window)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Criar frame para a tabela com scrollbar
+        table_frame = tk.Frame(main_frame)
+        table_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Criar scrollbars
+        y_scrollbar = ttk.Scrollbar(table_frame)
+        y_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        x_scrollbar = ttk.Scrollbar(table_frame, orient='horizontal')
+        x_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Criar Treeview
+        self.tree = ttk.Treeview(table_frame, 
+                                yscrollcommand=y_scrollbar.set,
+                                xscrollcommand=x_scrollbar.set)
+        
+        # Configurar scrollbars
+        y_scrollbar.config(command=self.tree.yview)
+        x_scrollbar.config(command=self.tree.xview)
+        
+        # Definir colunas
+        self.tree['columns'] = list(df.columns)
+        self.tree['show'] = 'headings'
+        
+        # Definir larguras e cabeçalhos das colunas
+        column_widths = {
+            'Registro': 80,
+            'Data': 100,
+            'Paciente': 200,
+            'Idade': 60,
+            'Sexo': 80,
+            'Cidade': 150,
+            'Cirurgião': 150,
+            'Auxiliar': 150,
+            'Anestesista': 150,
+            'Anestesia': 100,
+            'Convênio': 150,
+            'Cirurgia': 200,
+            'Porte': 60
+        }
+        
+        # Configurar as colunas
+        for column in df.columns:
+            width = column_widths.get(column, 100)
+            self.tree.column(column, width=width, minwidth=50)
+            self.tree.heading(column, text=column, anchor=tk.W)
+        
+        # Inserir dados (modificado para tratar valores vazios)
+        for idx, row in df.iterrows():
+            # Converter valores para string, substituindo valores vazios
+            values = ['' if pd.isna(val) or str(val).lower() == 'nan' else str(val) for val in row]
+            self.tree.insert("", tk.END, values=values)
+        
+        # Posicionar a tabela
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        
+        # Estilizar a tabela
+        style = ttk.Style()
+        style.theme_use("clam")
+        
+        style.configure("Treeview",
+                       background="#ffffff",
+                       foreground="#333333",
+                       rowheight=25,
+                       fieldbackground="#ffffff")
+        
+        style.configure("Treeview.Heading",
+                       background="#16733b",
+                       foreground="white",
+                       relief="flat")
+        
+        style.map("Treeview",
+                  background=[("selected", "#16733b")],
+                  foreground=[("selected", "white")])
+        
+        # Frame para os botões
+        button_frame = tk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Estilo comum para os botões
+        button_style = {
+            'bg': '#16733b',
+            'fg': 'white',
+            'font': ('Helvetica', 10, 'bold'),
+            'padx': 15,
+            'pady': 5,
+            'cursor': 'hand2'
+        }
+        
+        # Botão Copiar
+        copy_button = tk.Button(
+            button_frame,
+            text="Copiar Dados",
+            command=self.copy_to_clipboard,
+            **button_style
+        )
+        copy_button.pack(side=tk.RIGHT, padx=(5, 0))
+        
+        # Botão Exportar
+        export_button = tk.Button(
+            button_frame,
+            text="Exportar para Excel",
+            command=self.export_to_excel,
+            **button_style
+        )
+        export_button.pack(side=tk.RIGHT, padx=5)
+        
+        # Label para feedback
+        self.feedback_label = tk.Label(
+            button_frame,
+            text="",
+            fg="#16733b",
+            bg=self.window.cget('bg'),
+            font=('Helvetica', 10)
+        )
+        self.feedback_label.pack(side=tk.LEFT, padx=5)
+        
+        # Guardar o DataFrame
+        self.df = df
+        
+        # Centralizar a janela
+        self.center_window()
+        
+    def copy_to_clipboard(self):
+        try:
+            # Criar uma string formatada com tabulações
+            lines = []
+            
+            # Adicionar cabeçalhos
+            headers = [self.tree.heading(col)['text'] for col in self.tree['columns']]
+            lines.append('\t'.join(headers))
+            
+            # Adicionar dados
+            for item in self.tree.get_children():
+                values = self.tree.item(item)['values']
+                # Converter valores para string e tratar valores vazios
+                values = ['' if v is None or str(v).lower() == 'nan' else str(v).replace('\t', ' ') for v in values]
+                lines.append('\t'.join(values))
+            
+            # Juntar todas as linhas com quebra de linha
+            clipboard_text = '\n'.join(lines)
+            
+            # Copiar para a área de transferência
+            self.window.clipboard_clear()
+            self.window.clipboard_append(clipboard_text)
+            self.window.update()
+            
+            # Mostrar feedback
+            self.show_feedback("Dados copiados com sucesso!")
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao copiar dados: {e}")
+    
+    def show_feedback(self, message):
+        self.feedback_label.config(text=message)
+        # Limpar a mensagem após 3 segundos
+        self.window.after(3000, lambda: self.feedback_label.config(text=""))
+    
+    def center_window(self):
+        self.window.update_idletasks()
+        width = self.window.winfo_width()
+        height = self.window.winfo_height()
+        x = (self.window.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.window.winfo_screenheight() // 2) - (height // 2)
+        self.window.geometry(f'{width}x{height}+{x}+{y}')
+
+    def export_to_excel(self):
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel files", "*.xlsx")],
+            title="Salvar como"
+        )
+        if file_path:
+            # Criar um novo DataFrame com os dados atuais da tabela
+            data = []
+            columns = self.tree['columns']
+            
+            for item in self.tree.get_children():
+                values = self.tree.item(item)['values']
+                # Substituir 'nan' por valor vazio
+                values = ['' if v is None or str(v).lower() == 'nan' else v for v in values]
+                data.append(values)
+            
+            df_to_save = pd.DataFrame(data, columns=columns)
+            
+            # Salvar para Excel
+            df_to_save.to_excel(file_path, index=False)
+            self.show_feedback("Arquivo exportado com sucesso!")
 
 class LEDEffect:
     def __init__(self, canvas, width, height):
@@ -102,12 +300,12 @@ class ConverterApp:
                 df = pd.read_fwf(path_txt, colspecs=colspecs, encoding='latin1', header=None, names=column_names)
                 df = df[df['Sexo'].str.strip().isin(['Masculino', 'Feminino'])]
                 
-                if path_txt.endswith('.TXT'):
-                    path_excel = path_txt.replace('.TXT', '.xlsx')
-                else:
-                    path_excel = path_txt.replace('.txt', '.xlsx')
-                df.to_excel(path_excel, index=False)
-                messagebox.showinfo("Sucesso", f"Arquivo convertido com sucesso! Salvo como: {path_excel}")
+                # Substituir NaN por string vazia
+                df = df.fillna('')
+                
+                # Mostrar tabela sem salvar automaticamente
+                DataTableWindow(df)
+                
             except Exception as e:
                 messagebox.showerror("Erro", f"Erro ao processar o arquivo: {e}")
 

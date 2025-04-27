@@ -34,7 +34,15 @@ class ConverterApp:
         if path_txt:
             try:
                 colspecs = [(1, 10), (11, 22), (23, 64), (65, 70), (71, 80), (81, 112), (113, 144), (145, 176), (177, 203), (204, 215), (216, 242), (243, 286), (287, 295)]
-                df = pd.read_fwf(path_txt, colspecs=colspecs, encoding='latin1')
+                # Define os nomes das colunas
+                column_names = ['Registro', 'Data', 'Paciente', 'Idade', 'Sexo', 'Cidade', 'Cirurgião', 
+                          'Auxiliar', 'Anestesista', 'Anestesia', 'Convênio', 'Cirurgia', 'Porte']
+            
+                df = pd.read_fwf(path_txt, colspecs=colspecs, encoding='latin1', header=None, names=column_names)
+            
+                # Filtrar apenas linhas com "Masculino" ou "Feminino" na coluna do sexo
+                df = df[df['Sexo'].str.strip().isin(['Masculino', 'Feminino'])]
+            
                 # Preserva o caso original do nome do arquivo
                 if path_txt.endswith('.TXT'):
                     path_excel = path_txt.replace('.TXT', '.xlsx')
